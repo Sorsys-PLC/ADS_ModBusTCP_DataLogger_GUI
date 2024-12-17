@@ -13,13 +13,13 @@ def main():
     parser.add_argument('--ads', action='store_true', help="Enable ADS Data Pull")
     args = parser.parse_args()
 
-    # Initialize the database
-    initialize_db()
-
+    # Initialize the database based on the selected mode
     if args.tcp:
+        initialize_db("TCP")
         logging.info("Starting TCP Modbus Logging...")
         start_tcp_logging()
     elif args.ads:
+        initialize_db("ADS")
         logging.info("Starting ADS Data Pull...")
         start_ads_data_pull()
     else:
