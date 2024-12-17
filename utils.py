@@ -1,54 +1,107 @@
 import sqlite3
 import logging
+import os
 
-# Database configuration
-DB_PATH = "unified_plc_log.db"
+# Absolute path to the database
+DB_PATH = r"C:\DataLogging\plc_log.db"
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-# Initialize SQLite database
-def initialize_db():
+# Initialize SQLite database based on mode
+def initialize_db(mode):
     try:
+        print("Database file path:", DB_PATH)  # Debugging: Print the path
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Create table with separate columns for each coil and register
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS plc_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                source TEXT NOT NULL,
-                coil_1 INTEGER,
-                coil_2 INTEGER,
-                coil_3 INTEGER,
-                coil_4 INTEGER,
-                coil_5 INTEGER,
-                register_1 INTEGER,
-                register_2 INTEGER,
-                register_3 INTEGER,
-                register_4 INTEGER,
-                counter INTEGER,
-                operator_name TEXT,
-                status TEXT
-            )
-        ''')
+        # Drop the table if it exists to start fresh (optional)
+        cursor.execute("DROP TABLE IF EXISTS plc_data")
+
+        # Create the table based on the mode
+        if mode == "ADS":
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS plc_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    Active_Part TEXT,
+                    operator_name TEXT, 
+                    Lot_Number TEXT,
+                    CAM1_LastRun_G INTEGER,   
+                    CAM2_LastRun_G INTEGER,
+                    CAM3_LastRun_G INTEGER,   
+                    CAM4_LastRun_G INTEGER,
+                    CAM5_LastRun_G INTEGER,
+                    CAM6_LastRun_G INTEGER,
+                    CAM1_Batch_G INTEGER,   
+                    CAM2_Batch_G INTEGER,
+                    CAM3_Batch_G INTEGER,   
+                    CAM4_Batch_G INTEGER,
+                    CAM5_Batch_G INTEGER,
+                    CAM6_Batch_G INTEGER,
+                    CAM1_LastRun_NG INTEGER,   
+                    CAM2_LastRun_NG INTEGER,
+                    CAM3_LastRun_NG INTEGER,   
+                    CAM4_LastRun_NG INTEGER,
+                    CAM5_LastRun_NG INTEGER,
+                    CAM6_LastRun_NG INTEGER,
+                    CAM1_Batch_NG INTEGER,   
+                    CAM2_Batch_NG INTEGER,
+                    CAM3_Batch_NG INTEGER,   
+                    CAM4_Batch_NG INTEGER,
+                    CAM5_Batch_NG INTEGER,
+                    CAM6_Batch_NG INTEGER,
+                    LastRun_Good INTEGER,
+                    LastRun_Rej1 INTEGER,
+                    LastRun_Rej2 INTEGER ,
+                    Batch_Good INTEGER,
+                    Batch_Rej1 INTEGER,
+                    Batch_Rej2 INTEGER,     
+                    status TEXT
+                )
+            ''')
+            logging.info("Initialized database for ADS data.")
+        elif mode == "TCP":
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS plc_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    coil_1 INTEGER,
+                    coil_2 INTEGER,
+                    coil_3 INTEGER,
+                    coil_4 INTEGER,
+                    coil_5 INTEGER,
+                    register_1 INTEGER,
+                    register_2 INTEGER,
+                    register_3 INTEGER,
+                    register_4 INTEGER
+                )
+            ''')
+            logging.info("Initialized database for TCP Modbus data.")
+        else:
+            logging.error("Invalid mode specified. Use 'ADS' or 'TCP'.")
+            return
+
         conn.commit()
         conn.close()
-        logging.info("Initialized SQLite database with separate fields for coils and registers.")
+        logging.info("Database initialized successfully.")
     except Exception as e:
-        logging.error(f"Error initializing SQLite database: {e}")
+        logging.error(f"Error initializing database: {e}")
 
-# Log data to SQLite
+
 def log_to_db(data):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Dynamically construct the SQL query
-        columns = [key for key in data if data[key] is not None]
-        values = [data[key] for key in columns]
+        # Prepare query with updated column names
+        columns = ", ".join(data.keys())
+        placeholders = ", ".join(["?"] * len(data))
+        values = tuple(data.values())
 
         cursor.execute(f'''
-            INSERT INTO plc_data ({', '.join(columns)})
-            VALUES ({', '.join(['?'] * len(values))})
+            INSERT INTO plc_data ({columns})
+            VALUES ({placeholders})
         ''', values)
 
         conn.commit()
@@ -56,3 +109,4 @@ def log_to_db(data):
         logging.info(f"Logged data to DB: {data}")
     except Exception as e:
         logging.error(f"Error logging to database: {e}")
+

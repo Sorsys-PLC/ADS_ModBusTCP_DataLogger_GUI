@@ -1,20 +1,26 @@
-# pip install win10toast
-from win10toast import ToastNotifier
+from plyer import notification
 import subprocess
 import time
+import os
 
 # Show a Windows notification
-toaster = ToastNotifier()
-toaster.show_toast(
-    "Logging Started",
-    "Your Python script is now running!",
-    duration=5,  # Notification will stay for 5 seconds
-    threaded=True
+notification.notify(
+    title="PLC Data Logging Started",
+    message="SORSYS TECHNOLOGIES Inc.",
+    timeout=5  # Notification stays for 5 seconds
 )
 
-# Wait to ensure the notification displays
+# Wait for the notification to show
 time.sleep(2)
 
-# Run the main Python script
-script_path = r"C:\Scripts\my_script.py"  # Update this to the path of your Python script
-subprocess.run(["python", script_path])
+# Dynamically get the script path relative to the current folder
+script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
+logging_mode = "--ads"  # Change to "--tcp" if needed
+
+try:
+    subprocess.run(["python", script_path, logging_mode], check=True)
+except subprocess.CalledProcessError as e:
+    print(f"Error running script: {e}")
+
+
+
