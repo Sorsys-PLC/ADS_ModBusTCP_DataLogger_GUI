@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DataLogger
 
 Open Task Scheduler:
@@ -25,3 +26,6 @@ Test the Task:
 
 Right-click on the task in Task Scheduler and select Run.
 Restart your computer to verify it runs automatically.
+=======
+# DataLogger Mahdi
+>>>>>>> b367394cb8c8b298b3c7625bfd3fb34b7a4a50d5
