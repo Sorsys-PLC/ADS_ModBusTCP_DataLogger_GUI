@@ -1,3 +1,19 @@
+import time
+import logging
+from datetime import datetime
+
+from pyModbusTCP.client import ModbusClient
+from utils import log_to_db
+
+# Define constants (update with your actual PLC setup)
+MODBUS_PLC_IP = "192.168.0.10"
+MODBUS_PORT = 502
+MODBUS_SLAVE_ID = 1
+MODBUS_POLLING_DELAY = 0.5
+NUMBER_OF_COILS = 5
+NUMBER_OF_32BIT_REGISTERS = 4
+
+
 def start_tcp_logging():
     client = ModbusClient(host=MODBUS_PLC_IP, port=MODBUS_PORT, unit_id=MODBUS_SLAVE_ID, auto_open=True, timeout=5)
     previous_coil_state = [0] * NUMBER_OF_COILS  # Track the previous state of all coils
