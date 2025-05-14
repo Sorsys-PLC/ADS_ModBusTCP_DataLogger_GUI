@@ -66,15 +66,15 @@ def initialize_db(mode):
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
                     source TEXT NOT NULL,
-                    coil_1 INTEGER,
-                    coil_2 INTEGER,
-                    coil_3 INTEGER,
-                    coil_4 INTEGER,
-                    coil_5 INTEGER,
-                    register_1 INTEGER,
-                    register_2 INTEGER,
-                    register_3 INTEGER,
-                    register_4 INTEGER
+                    Lot_Number INTEGER,
+                    CAM_Min REAL,
+                    CAM_Max REAL,
+                    VALVE_Min REAL,
+                    VALVE_Max REAL,
+                    Inner_D REAL,
+                    Circularity REAL,
+                    Oil_Hole TEXT,
+                    Result TEXT
                 )
             ''')
             logging.info("Initialized database for TCP Modbus data.")

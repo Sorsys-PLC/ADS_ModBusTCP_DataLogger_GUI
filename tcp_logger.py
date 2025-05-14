@@ -11,8 +11,15 @@ MODBUS_PORT = 502
 MODBUS_SLAVE_ID = 1
 MODBUS_POLLING_DELAY = 0.5
 NUMBER_OF_COILS = 5
-NUMBER_OF_32BIT_REGISTERS = 4
+NUMBER_OF_32BIT_REGISTERS = 17
 
+def get_uint32_from_registers(registers, index):
+    """Safely get a 32-bit unsigned int from two 16-bit registers"""
+    if index + 1 < len(registers):
+        low = registers[index]
+        high = registers[index + 1]
+        return (high << 16) | low
+    return None
 
 def start_tcp_logging():
     client = ModbusClient(host=MODBUS_PLC_IP, port=MODBUS_PORT, unit_id=MODBUS_SLAVE_ID, auto_open=True, timeout=5)
@@ -41,15 +48,15 @@ def start_tcp_logging():
                     log_to_db({
                         'timestamp': timestamp,
                         'source': 'Modbus',
-                        'coil_1': coils[0],
-                        'coil_2': coils[1] if len(coils) > 1 else None,
-                        'coil_3': coils[2] if len(coils) > 2 else None,
-                        'coil_4': coils[3] if len(coils) > 3 else None,
-                        'coil_5': coils[4] if len(coils) > 4 else None,
-                        'register_1': registers[0] if len(registers) > 0 else None,
-                        'register_2': registers[1] if len(registers) > 1 else None,
-                        'register_3': registers[2] if len(registers) > 2 else None,
-                        'register_4': registers[3] if len(registers) > 3 else None,
+                        'Lot_Number': get_uint32_from_registers(registers, 0),
+                        'CAM_Min': get_uint32_from_registers(registers, 2) / 1000.0,
+                        'CAM_Max': get_uint32_from_registers(registers, 4) / 1000.0,
+                        'VALVE_Min': get_uint32_from_registers(registers, 6) / 1000.0,
+                        'VALVE_Max': get_uint32_from_registers(registers, 8) / 1000.0,
+                        'Inner_D': get_uint32_from_registers(registers, 10) / 1000.0,
+                        'Circularity': get_uint32_from_registers(registers, 12) / 1000.0,
+                        'Oil_Hole': "Pass" if len(coils) > 3 and coils[1] else "Fail",
+                        'Result': "Pass" if len(coils) > 3 and coils[2] else "Fail"
                     })
                     logging.info(f"Logged data for rising edge on coil 1: Coils={coils}, Registers={registers}")
                 else:
