@@ -13,6 +13,18 @@ MODBUS_POLLING_DELAY = 0.5
 NUMBER_OF_COILS = 5
 NUMBER_OF_32BIT_REGISTERS = 17
 
+def load_tag_config(path="plc_logger_config.json"):
+    with open(path, "r") as f:
+        config = json.load(f)
+    return config.get("tags", [])
+
+
+log_data = {
+    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "source": "Modbus"
+}
+
+
 def get_uint32_from_registers(registers, index):
     """Safely get a 32-bit unsigned int from two 16-bit registers"""
     if index + 1 < len(registers):
