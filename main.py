@@ -4,7 +4,16 @@ from tcp_logger import start_tcp_logging
 from utils import initialize_db
 
 # Logger setup
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+log_file = os.path.join(os.environ["USERPROFILE"], "Documents", "PLC_Logs", "logger.log")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file, mode='a'),
+        logging.StreamHandler()
+    ]
+)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Unified PLC Data Logger")
