@@ -1,20 +1,58 @@
 import sqlite3
 import logging
 import os
+from datetime import datetime
 
+
+
+logging.basicConfig(
+    level=logging.INFO,  # <-- this hides DEBUG logs
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+level=logging.INFO
 # Absolute path to the database
-DB_PATH = r"C:\DataLogging\plc_log.db"
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+##DB_PATH = r"C:\DataLogging\plc_log.db"
+##os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# Set up logging level (optional, you can also do this in your main script)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Folder where daily log databases will be stored
+BASE_DB_FOLDER = os.path.join(os.environ["USERPROFILE"], "Documents", "PLC_Logs")
+os.makedirs(BASE_DB_FOLDER, exist_ok=True)
+
+DB_PATH = None
+current_log_date = None
+current_mode = None
+
+def get_db_path(mode):
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    suffix = "tcp_log" if mode == "TCP" else "ads_log"
+    filename = f"{date_str}_{suffix}.db"
+    full_path = os.path.join(BASE_DB_FOLDER, filename)
+    logging.debug(f"Constructed DB path: {full_path}")
+    return full_path
+
 
 # Initialize SQLite database based on mode
-def initialize_db(mode):
+def initialize_db(mode):    
+    global DB_PATH
+    DB_PATH = get_db_path(mode)
+
+    logging.info(f"Initializing database for mode: {mode}")
+    logging.debug(f"Database full path: {DB_PATH}")
+
     try:
-        print("Database file path:", DB_PATH)  # Debugging: Print the path
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        logging.debug(f"Ensured directory exists: {os.path.dirname(DB_PATH)}")
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+        logging.debug("Opened SQLite connection")
 
-        # Drop the table if it exists to start fresh (optional)
-        cursor.execute("DROP TABLE IF EXISTS plc_data")
+        #cursor.execute("DROP TABLE IF EXISTS plc_data")
+        logging.debug("Dropped existing plc_data table (if any)")
 
         # Create the table based on the mode
         if mode == "ADS":
@@ -87,17 +125,31 @@ def initialize_db(mode):
         logging.info("Database initialized successfully.")
     except Exception as e:
         logging.error(f"Error initializing database: {e}")
-
+        raise
 
 def log_to_db(data):
+    global DB_PATH, current_log_date, current_mode
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    if current_log_date != today_str or not os.path.exists(DB_PATH):
+        logging.info("Date changed or DB file missing — rotating log file.")
+        initialize_db(current_mode)
+        
+    if not DB_PATH:
+        logging.error("Database path is not set. Did you call initialize_db(mode)?")
+        return
+
     try:
-        conn = sqlite3.connect(DB_PATH)
+        logging.debug(f"Logging data to DB: {DB_PATH}")
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         cursor = conn.cursor()
 
-        # Prepare query with updated column names
         columns = ", ".join(data.keys())
         placeholders = ", ".join(["?"] * len(data))
         values = tuple(data.values())
+
+        logging.debug(f"SQL: INSERT INTO plc_data ({columns}) VALUES ({placeholders})")
+        logging.debug(f"Values: {values}")
 
         cursor.execute(f'''
             INSERT INTO plc_data ({columns})
@@ -106,7 +158,7 @@ def log_to_db(data):
 
         conn.commit()
         conn.close()
-        logging.info(f"Logged data to DB: {data}")
+        logging.info("Data successfully logged.")
+
     except Exception as e:
         logging.error(f"Error logging to database: {e}")
-
