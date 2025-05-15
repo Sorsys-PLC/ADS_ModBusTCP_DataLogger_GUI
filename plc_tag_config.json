@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Test1",
+    "address": "1",
+    "type": "Coil"
+  },
+  {
+    "name": "data1",
+    "address": "1",
+    "type": "Register"
+  }
+]

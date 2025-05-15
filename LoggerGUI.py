@@ -8,6 +8,8 @@ import subprocess
 import matplotlib.pyplot as plt
 from datetime import datetime
 from tkinter import messagebox, END, filedialog
+from tag_configurator_tab import TagConfiguratorTab
+
 
 CONFIG_FILE = "plc_logger_config.json"
 DB_FOLDER = os.path.join(os.environ["USERPROFILE"], "Documents", "PLC_Logs")
@@ -40,6 +42,12 @@ class TagEditorApp(ctk.CTk):
         self.find_latest_db()
         self.auto_refresh_loop()
         self.auto_refresh_chart()
+    
+    def update_tag_filter_dropdown(self):
+        if hasattr(self, "tag_filter_dropdown"):
+            tag_names = [tag["name"] for tag in self.tags] if self.tags else []
+            self.tag_filter_dropdown.configure(values=["All"] + tag_names)
+            self.tag_filter_dropdown.set("All")
 
     def create_widgets(self):
         self.tabs = ttk.Notebook(self)
@@ -50,6 +58,9 @@ class TagEditorApp(ctk.CTk):
 
         self.tabs.add(self.config_frame, text="Configuration")
         self.tabs.add(self.diagnostics_frame, text="Diagnostics")
+
+        self.tag_configurator_frame = TagConfiguratorTab(self.tabs, self)
+        self.tabs.add(self.tag_configurator_frame, text="Tag Configurator")
 
         self.create_config_tab()
         self.create_diagnostics_tab()
