@@ -1,7 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from tag_configurator_tab import TagConfiguratorTab
-from config_tab import ConfigTab
 from diagnostics_tab import DiagnosticsTab
 from ChartTab import ChartTab
 import subprocess
@@ -22,6 +21,8 @@ class TagEditorApp(ctk.CTk):
         self.db_file = None
         self.table_name = "plc_data"
         self.create_widgets()
+        self.bind_tab_change()
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def show_chart(self):
         from tkinter import messagebox
@@ -41,15 +42,9 @@ class TagEditorApp(ctk.CTk):
         self.tabs = ctk.CTkTabview(self)
         self.tabs.pack(fill="both", expand=True)
 
-        # Add tab names first
-        self.tabs.add("Configuration")
         self.tabs.add("Diagnostics")
         self.tabs.add("Charts")
         self.tabs.add("Tag Configurator")
-
-        # Now add the content frames to each tab
-        self.config_tab = ConfigTab(self.tabs.tab("Configuration"), self)
-        self.config_tab.pack(fill="both", expand=True)
 
         self.diagnostics_tab = DiagnosticsTab(self.tabs.tab("Diagnostics"), self)
         self.diagnostics_tab.pack(fill="both", expand=True)
@@ -61,7 +56,27 @@ class TagEditorApp(ctk.CTk):
         self.tag_configurator_tab.pack(fill="both", expand=True)
 
     def update_tag_filter_dropdown(self):
-        if hasattr(self, "config_tab") and hasattr(self.config_tab, "tag_filter_dropdown"):
+        if hasattr(self, "chart_tab") and hasattr(self.chart_tab, "tag_filter_dropdown"):
             tag_names = [tag["name"] for tag in self.tags] if self.tags else []
-            self.config_tab.tag_filter_dropdown.configure(values=["All"] + tag_names)
-            self.config_tab.tag_filter_dropdown.set("All")
+            self.chart_tab.tag_filter_dropdown.configure(values=["All"] + tag_names)
+            self.chart_tab.tag_filter_dropdown.set("All")
+
+
+    def on_close(self):
+        if hasattr(self, "tag_configurator_tab") and self.tag_configurator_tab.unsaved_changes:
+            if messagebox.askyesno("Unsaved Changes", "You have unsaved tag changes. Save before exiting?"):
+                self.tag_configurator_tab.save_tags()
+        self.destroy()
+    
+
+    def bind_tab_change(self):
+        self.tabs._segmented_button._command = self.on_tab_changed
+
+    def on_tab_changed(self, tab_name):
+        if hasattr(self, "tag_configurator_tab") and self.tag_configurator_tab.unsaved_changes:
+            if not messagebox.askyesno("Unsaved Changes", "You have unsaved tag changes. Switch tabs without saving?"):
+                self.tabs.set("Tag Configurator")  # <- safely switch back
+                return
+        self.tabs.set(tab_name)  # <- safely switch to the requested tab
+
+    

@@ -1,12 +1,14 @@
 [
-  {
-    "name": "Test1",
-    "address": "1",
-    "type": "Coil"
-  },
-  {
-    "name": "data1",
-    "address": "1",
-    "type": "Register"
-  }
+    {
+        "name": "ttt",
+        "address": 1,
+        "type": "Coil",
+        "enabled": true
+    },
+    {
+        "name": "data1",
+        "address": 1,
+        "type": "Register",
+        "enabled": true
+    }
 ]
