@@ -1,0 +1,46 @@
+{
+    "global_settings": {
+        "mode": "TCP",
+        "ip": "192.168.0.10",
+        "port": 502,
+        "polling_interval": 0.5
+    },
+    "tags": [
+        {
+            "name": "ttt",
+            "address": 1,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "ttt1",
+            "address": 2,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "ttt2",
+            "address": 3,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "ed",
+            "address": 5,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "uiuj",
+            "address": 22,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "sd",
+            "address": 23,
+            "type": "Coil",
+            "enabled": true
+        }
+    ]
+}
