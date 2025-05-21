@@ -40,6 +40,7 @@ class TagEditorApp(ctk.CTk):
         self.settings_frame = ctk.CTkFrame(self)
         self.settings_frame.pack(padx=10, pady=(10, 0), fill="x")
 
+        # Row 0: Mode selection and entries
         self.mode_option = ctk.CTkOptionMenu(self.settings_frame, values=["TCP", "ADS"])
         self.mode_option.set(self.global_settings["mode"])
         self.mode_option.grid(row=0, column=0, padx=10, pady=10)
@@ -47,28 +48,38 @@ class TagEditorApp(ctk.CTk):
         self.ip_entry = ctk.CTkEntry(self.settings_frame, placeholder_text="IP Address")
         self.ip_entry.insert(0, self.global_settings["ip"])
         self.ip_entry.grid(row=0, column=1, padx=10, pady=10)
+        self.ip_note = ctk.CTkLabel(self.settings_frame, text="PLC IP address (e.g., 192.168.0.10)", text_color="gray", font=("Arial", 9, "italic"))
+        self.ip_note.grid(row=1, column=1, padx=10, pady=(0, 5))
 
         self.port_entry = ctk.CTkEntry(self.settings_frame, placeholder_text="Port")
         self.port_entry.insert(0, str(self.global_settings["port"]))
         self.port_entry.grid(row=0, column=2, padx=10, pady=10)
+        self.port_note = ctk.CTkLabel(self.settings_frame, text="Default Modbus port is 502", text_color="gray", font=("Arial", 9, "italic"))
+        self.port_note.grid(row=1, column=2, padx=10, pady=(0, 5))
 
         self.polling_entry = ctk.CTkEntry(self.settings_frame, placeholder_text="Polling Interval")
         self.polling_entry.insert(0, str(self.global_settings["polling_interval"]))
         self.polling_entry.grid(row=0, column=3, padx=10, pady=10)
+        self.polling_note = ctk.CTkLabel(self.settings_frame, text="Polling interval in seconds (e.g., 0.5)", text_color="gray", font=("Arial", 9, "italic"))
+        self.polling_note.grid(row=1, column=3, padx=10, pady=(0, 5))
 
-        self.apply_button = ctk.CTkButton(self.settings_frame, text="Apply Settings", command=self.apply_settings)
-        self.apply_button.grid(row=0, column=4, padx=10, pady=10)
+        # Row 2: Buttons (apply, start, stop) in a new frame
+        self.button_frame = ctk.CTkFrame(self.settings_frame)
+        self.button_frame.grid(row=2, column=0, columnspan=4, padx=0, pady=(5, 0), sticky="w")
 
-        self.start_logging_button = ctk.CTkButton(self.settings_frame, text="Start Logging", command=self.start_logging)
-        self.start_logging_button.grid(row=0, column=5, padx=10, pady=10)
+        self.apply_button = ctk.CTkButton(self.button_frame, text="Apply Settings", command=self.apply_settings)
+        self.apply_button.pack(side="left", padx=10, pady=10)
 
-        self.stop_logging_button = ctk.CTkButton(self.settings_frame, text="Stop Logging", command=self.stop_logging)
-        self.stop_logging_button.grid(row=0, column=6, padx=10, pady=10)
+        self.start_logging_button = ctk.CTkButton(self.button_frame, text="Start Logging", command=self.start_logging)
+        self.start_logging_button.pack(side="left", padx=10, pady=10)
 
+        self.stop_logging_button = ctk.CTkButton(self.button_frame, text="Stop Logging", command=self.stop_logging)
+        self.stop_logging_button.pack(side="left", padx=10, pady=10)
+
+        # Log Console and Tag Filter Dropdown remain unchanged
         self.log_console = ctk.CTkTextbox(self, height=150)
         self.log_console.pack(fill="x", padx=10, pady=(5, 10))
 
-        # Tag Filter Dropdown for Charts
         self.tag_filter_var = StringVar(value="All")
         self.tag_filter_dropdown = ctk.CTkOptionMenu(
             self,
@@ -94,6 +105,7 @@ class TagEditorApp(ctk.CTk):
 
         self.tag_configurator_tab = TagConfiguratorTab(self.tabs.tab("Tag Configurator"), self)
         self.tag_configurator_tab.grid(row=0, column=0, sticky="nsew")
+
 
     def update_tag_filter_dropdown(self):
         tag_names = ["All"]
