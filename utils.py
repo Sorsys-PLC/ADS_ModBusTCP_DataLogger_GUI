@@ -1,9 +1,10 @@
-import sqlite3
 import logging
 import os
 import json
 import hashlib
 from datetime import datetime
+import sqlite3
+import threading
 
 CONFIG_FILE = "plc_logger_config.json"
 DB_FOLDER = os.path.join(os.environ["USERPROFILE"], "Documents", "PLC_Logs")
@@ -11,6 +12,50 @@ os.makedirs(DB_FOLDER, exist_ok=True)
 
 DB_PATH = None
 CURRENT_CONFIG_HASH = None
+
+class DBLogger:
+    """
+    Handles an open SQLite database connection for fast PLC logging.
+    """
+    def __init__(self, db_file):
+        self.db_file = db_file
+        self.conn = None
+        self.lock = threading.Lock()
+
+    def open(self):
+        if self.conn is None:
+            self.conn = sqlite3.connect(self.db_file, check_same_thread=False)
+            self.conn.execute('PRAGMA journal_mode=WAL;')
+
+    def close(self):
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+
+    def log(self, table, data):
+        """
+        Inserts a log entry into the table.
+        data: dict {column: value}
+        """
+        with self.lock:
+            columns = ', '.join(data.keys())
+            placeholders = ', '.join('?' for _ in data)
+            values = tuple(data.values())
+            sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+            try:
+                self.conn.execute(sql, values)
+                self.conn.commit()
+            except Exception as e:
+                print("DB Logging error:", e)
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
 
 def load_config():
     with open(CONFIG_FILE, 'r') as f:
@@ -65,18 +110,3 @@ def initialize_db():
     conn.commit()
     conn.close()
     logging.info("Database schema initialized successfully.")
-
-def log_to_db(data):
-    global DB_PATH
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join(["?"] * len(data))
-        values = tuple(data.values())
-        cursor.execute(f"INSERT INTO plc_data ({columns}) VALUES ({placeholders})", values)
-        conn.commit()
-        conn.close()
-        logging.info("Data logged to DB successfully.")
-    except Exception as e:
-        logging.error(f"Failed to log data to DB: {e}")

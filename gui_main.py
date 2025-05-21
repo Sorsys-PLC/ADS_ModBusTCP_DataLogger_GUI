@@ -9,6 +9,32 @@ import threading
 from datetime import datetime
 from utils import initialize_db, DB_PATH
 from tkinter import messagebox
+import ipaddress
+import re
+
+def is_valid_ip(ip):
+        try:
+            ipaddress.ip_address(ip)
+            return True
+        except ValueError:
+            return False
+        
+def is_valid_polling_interval(interval):
+        try:
+            value = float(interval)
+            return 0.1 <= value <= 60.0
+        except ValueError:
+            return False
+    
+def is_valid_polling_interval(interval):
+        try:
+            value = float(interval)
+            return 0.1 <= value <= 60.0
+        except ValueError:
+            return False    
+
+def is_valid_ams_net_id(ams_id):
+        return bool(re.match(r"^\d+\.\d+\.\d+\.\d+\.\d+\.\d+$", ams_id))    
 
 
 CONFIG_FILE = "plc_logger_config.json"
@@ -35,7 +61,7 @@ class TagEditorApp(ctk.CTk):
         self.load_config()
         self.bind_tab_change()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
-
+    
     def create_widgets(self):
         # Settings panel
         self.settings_frame = ctk.CTkFrame(self)
@@ -156,16 +182,53 @@ class TagEditorApp(ctk.CTk):
         self.log_console.see("end")
 
     def apply_settings(self):
+        # Get values from entries
+        ams_net_id = self.ams_id_entry.get().strip()
+        ams_port = self.ams_port_entry.get().strip()
+        mode = self.mode_option.get()
+        ip = self.ip_entry.get().strip()
+        port = self.port_entry.get().strip()
+        polling = self.polling_entry.get().strip()
+
+        # IP Address validation
+        if not is_valid_ip(ip):
+            messagebox.showerror("Invalid Input", "Please enter a valid IP address.")
+            return
+
+        # Port validation
         try:
-            self.global_settings["ams_net_id"] = self.ams_id_entry.get()
-            self.global_settings["ams_port"] = int(self.ams_port_entry.get())
-            self.global_settings["mode"] = self.mode_option.get()
-            self.global_settings["ip"] = self.ip_entry.get()
-            self.global_settings["port"] = int(self.port_entry.get())
-            self.global_settings["polling_interval"] = float(self.polling_entry.get())
-            messagebox.showinfo("Settings Updated", "Connection settings updated.")
+            port_val = int(port)
+            if not (1 <= port_val <= 65535):
+                raise ValueError
         except ValueError:
-            messagebox.showerror("Invalid Input", "Port must be an integer. Polling interval must be a number.")
+            messagebox.showerror("Invalid Input", "Port must be an integer between 1 and 65535.")
+            return
+
+        # Polling interval validation
+        if not is_valid_polling_interval(polling):
+            messagebox.showerror("Invalid Input", "Polling interval must be a number between 0.1 and 60 seconds.")
+            return
+
+        # AMS Net ID and port validation (if in ADS mode)
+        if mode == "ADS":
+            if not is_valid_ams_net_id(ams_net_id):
+                messagebox.showerror("Invalid Input", "AMS Net ID must be in the form X.X.X.X.X.X (six numbers separated by dots).")
+                return
+            try:
+                ams_port_val = int(ams_port)
+                if not (1 <= ams_port_val <= 65535):
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Invalid Input", "AMS Port must be an integer between 1 and 65535.")
+                return
+            self.global_settings["ams_net_id"] = ams_net_id
+            self.global_settings["ams_port"] = ams_port_val
+
+        self.global_settings["mode"] = mode
+        self.global_settings["ip"] = ip
+        self.global_settings["port"] = port_val
+        self.global_settings["polling_interval"] = float(polling)
+        messagebox.showinfo("Settings Updated", "Connection settings updated.")
 
     def start_logging(self):
         self.apply_settings()
@@ -226,7 +289,6 @@ class TagEditorApp(ctk.CTk):
             self.update_tag_filter_dropdown()
         except Exception as e:
             messagebox.showerror("Save Config Error", f"Failed to save config:\n{e}")
-
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):

@@ -5,11 +5,16 @@ import re
 from tkinter import messagebox
 
 class TagConfiguratorTab(ctk.CTkFrame):
+    """
+    Tab for configuring PLC tags, including adding, editing, removing, and validating tags.
+    Provides real-time duplicate name validation and in-place editing.
+    """
     def __init__(self, master, app, **kwargs):
         super().__init__(master, **kwargs)
         self.app = app
         self.tags = []
         self.unsaved_changes = False
+        self.selected_tag_index = None
         self.create_widgets()
         self.load_tags()
 
@@ -18,10 +23,14 @@ class TagConfiguratorTab(ctk.CTkFrame):
         form_frame = ctk.CTkFrame(self)
         form_frame.pack(padx=10, pady=10, fill="x")
 
-        self.name_entry = ctk.CTkEntry(form_frame, placeholder_text="Tag Name")
+        self.name_var = ctk.StringVar()
+        self.name_entry = ctk.CTkEntry(form_frame, placeholder_text="Tag Name", textvariable=self.name_var)
         self.name_entry_tooltip = ctk.CTkLabel(form_frame, text="Enter a unique name for the tag", font=tooltip_font, text_color="gray")
         self.name_entry.grid(row=0, column=0, padx=5, pady=5)
         self.name_entry_tooltip.grid(row=1, column=0, padx=5, pady=(0, 10))
+
+        self.name_entry.bind("<FocusOut>", self.on_name_entry_focus_out)
+        self.name_var.trace_add("write", self.on_name_entry_change)
 
         self.address_entry = ctk.CTkEntry(form_frame, placeholder_text="Address")
         self.address_entry_tooltip = ctk.CTkLabel(form_frame, text="Integer address (e.g., 0, 1, 100)", font=tooltip_font, text_color="gray")
@@ -30,7 +39,8 @@ class TagConfiguratorTab(ctk.CTkFrame):
 
         self.type_option = ctk.CTkOptionMenu(form_frame, values=["Coil", "Register"])
         self.type_option.set("Coil")
-        self.type_option_tooltip = ctk.CTkLabel(form_frame, text="Choose tag type", font=tooltip_font, text_color="gray")
+        # Improved tooltip
+        self.type_option_tooltip = ctk.CTkLabel(form_frame, text="Select Modbus data type (Coil or Register)", font=tooltip_font, text_color="gray")
         self.type_option.grid(row=0, column=2, padx=5, pady=5)
         self.type_option_tooltip.grid(row=1, column=2, padx=5, pady=(0, 10))
 
@@ -46,6 +56,9 @@ class TagConfiguratorTab(ctk.CTkFrame):
         self.add_button = ctk.CTkButton(button_frame, text="Add Tag", command=self.add_tag)
         self.add_button.pack(side="left", padx=5)
 
+        self.edit_button = ctk.CTkButton(button_frame, text="Edit Tag", command=self.edit_tag)
+        self.edit_button.pack(side="left", padx=5)
+
         self.remove_button = ctk.CTkButton(button_frame, text="Remove Tag", command=self.remove_tag)
         self.remove_button.pack(side="left", padx=5)
 
@@ -54,28 +67,65 @@ class TagConfiguratorTab(ctk.CTkFrame):
 
         self.tag_display = ctk.CTkTextbox(self, width=800, height=200)
         self.tag_display.pack(padx=10, pady=10, fill="both", expand=True)
+        self.tag_display.bind("<Button-1>", self.on_tag_display_click)
 
     def clean_tag_name(self, name):
-        # Remove all non-printable and normalize whitespace
+        """
+        Strips whitespace and normalizes spaces in tag name.
+        """
         name = name.strip()
         name = re.sub(r'\s+', ' ', name)
         return name
 
     def update_tag_display(self):
+        """
+        Refreshes the tag display area, marking duplicates.
+        """
         self.tag_display.delete("1.0", "end")
         seen = set()
-        for tag in self.tags:
-            # Show the repr to catch hidden spaces
+        for idx, tag in enumerate(self.tags):
             label = f"{repr(tag['name'])} [{tag['type']} @ {tag['address']}]"
             key = (tag['type'], tag['address'])
             enabled_status = "Enabled" if tag.get("enabled", True) else "Disabled"
+            duplicate = ""
             if key in seen:
-                self.tag_display.insert("end", f"{label} ({enabled_status})  <-- DUPLICATE\n")
-            else:
-                self.tag_display.insert("end", f"{label} ({enabled_status})\n")
-                seen.add(key)
+                duplicate = "  <-- DUPLICATE"
+            self.tag_display.insert("end", f"{label} ({enabled_status}){duplicate}\n")
+            seen.add(key)
+
+    def get_selected_tag_index_from_cursor(self, event):
+        """
+        Determines which tag is clicked in the display.
+        """
+        # Get the mouse y position in the widget and calculate the corresponding line index
+        try:
+            index = self.tag_display.index(f"@{event.x},{event.y}")
+            line_num = int(index.split(".")[0]) - 1
+            if 0 <= line_num < len(self.tags):
+                return line_num
+        except Exception:
+            pass
+        return None
+
+    def on_tag_display_click(self, event):
+        """
+        When a tag is clicked in the display, populate the fields with that tag's info.
+        """
+        idx = self.get_selected_tag_index_from_cursor(event)
+        if idx is not None:
+            tag = self.tags[idx]
+            self.name_var.set(tag['name'])
+            self.address_entry.delete(0, "end")
+            self.address_entry.insert(0, str(tag['address']))
+            self.type_option.set(tag['type'])
+            self.enabled_var.set(tag.get("enabled", True))
+            self.selected_tag_index = idx
 
     def add_tag(self):
+        """
+        Adds a tag after checking for duplicate name and duplicate address/type.
+        Provides immediate feedback for errors.
+        """
         name = self.clean_tag_name(self.name_entry.get())
         try:
             address = int(self.address_entry.get())
@@ -95,16 +145,149 @@ class TagConfiguratorTab(ctk.CTkFrame):
                 messagebox.showerror("Duplicate Address", f"Another tag already uses address {address} as a {tag_type}.")
                 return
 
+        # Check for duplicate name (case-insensitive)
+        for tag in self.tags:
+            if self.clean_tag_name(tag["name"]).lower() == name.lower():
+                messagebox.showerror("Duplicate Name", f"Another tag already uses the name '{name}'.")
+                self.name_entry_tooltip.configure(
+                    text=f"Name '{name}' already exists!",
+                    text_color="red"
+                )
+                if hasattr(self.name_entry, 'configure'):
+                    try:
+                        self.name_entry.configure(border_color="red")
+                    except Exception:
+                        pass
+                return
+
+        self.name_entry_tooltip.configure(
+            text="Enter a unique name for the tag",
+            text_color="gray"
+        )
+        if hasattr(self.name_entry, 'configure'):
+            try:
+                self.name_entry.configure(border_color="gray")
+            except Exception:
+                pass
+
         self.tags.append({"name": name, "address": address, "type": tag_type, "enabled": enabled})
         self.unsaved_changes = True
         self.save_button.configure(fg_color="#FFA500")
         self.update_tag_display()
+        self.selected_tag_index = None
+
+    def edit_tag(self):
+        """
+        Edit the currently selected tag in the list (based on display click).
+        """
+        if self.selected_tag_index is None or not (0 <= self.selected_tag_index < len(self.tags)):
+            messagebox.showerror("No Tag Selected", "Please select a tag to edit by clicking a line in the tag display.")
+            return
+
+        name = self.clean_tag_name(self.name_entry.get())
+        try:
+            address = int(self.address_entry.get())
+        except ValueError:
+            messagebox.showerror("Invalid Address", "Address must be an integer.")
+            return
+        tag_type = self.type_option.get()
+        enabled = self.enabled_var.get()
+
+        # Check for duplicate name (ignore self)
+        for idx, tag in enumerate(self.tags):
+            if idx != self.selected_tag_index and self.clean_tag_name(tag["name"]).lower() == name.lower():
+                messagebox.showerror("Duplicate Name", f"Another tag already uses the name '{name}'.")
+                self.name_entry_tooltip.configure(
+                    text=f"Name '{name}' already exists!",
+                    text_color="red"
+                )
+                if hasattr(self.name_entry, 'configure'):
+                    try:
+                        self.name_entry.configure(border_color="red")
+                    except Exception:
+                        pass
+                return
+
+        # Check for duplicate address/type combo (ignore self)
+        for idx, tag in enumerate(self.tags):
+            if idx != self.selected_tag_index and tag["address"] == address and tag["type"] == tag_type:
+                messagebox.showerror("Duplicate Address", f"Another tag already uses address {address} as a {tag_type}.")
+                return
+
+        self.name_entry_tooltip.configure(
+            text="Enter a unique name for the tag",
+            text_color="gray"
+        )
+        if hasattr(self.name_entry, 'configure'):
+            try:
+                self.name_entry.configure(border_color="gray")
+            except Exception:
+                pass
+
+        # Update the tag
+        self.tags[self.selected_tag_index] = {
+            "name": name,
+            "address": address,
+            "type": tag_type,
+            "enabled": enabled
+        }
+        self.unsaved_changes = True
+        self.save_button.configure(fg_color="#FFA500")
+        self.update_tag_display()
+        self.selected_tag_index = None
+
+    def on_name_entry_focus_out(self, event=None):
+        """
+        Checks for duplicate tag names when the name entry loses focus.
+        Updates tooltip and border color as needed.
+        """
+        name = self.clean_tag_name(self.name_entry.get())
+        if not name:
+            self.name_entry_tooltip.configure(
+                text="Enter a unique name for the tag",
+                text_color="gray"
+            )
+            if hasattr(self.name_entry, 'configure'):
+                try:
+                    self.name_entry.configure(border_color="gray")
+                except Exception:
+                    pass
+            return
+        count = sum(1 for tag in self.tags if self.clean_tag_name(tag["name"]).lower() == name.lower())
+        if count > 0:
+            self.name_entry_tooltip.configure(
+                text=f"Name '{name}' already exists!",
+                text_color="red"
+            )
+            if hasattr(self.name_entry, 'configure'):
+                try:
+                    self.name_entry.configure(border_color="red")
+                except Exception:
+                    pass
+        else:
+            self.name_entry_tooltip.configure(
+                text="Enter a unique name for the tag",
+                text_color="gray"
+            )
+            if hasattr(self.name_entry, 'configure'):
+                try:
+                    self.name_entry.configure(border_color="gray")
+                except Exception:
+                    pass
+
+    def on_name_entry_change(self, *args):
+        """
+        Reuse focus-out duplicate check on text change.
+        """
+        self.on_name_entry_focus_out()
 
     def save_tags(self):
+        """
+        Saves all tags to the config file after checking for duplicates.
+        """
         seen = {}
         duplicates = []
         name_set = set()
-        # Debug printout of tag names for visibility
 
         for tag in self.tags:
             key = (tag['type'], tag['address'])
@@ -146,6 +329,9 @@ class TagConfiguratorTab(ctk.CTkFrame):
             messagebox.showerror("Error Saving", str(e))
 
     def remove_tag(self):
+        """
+        Removes a tag matching name, address, and type.
+        """
         name = self.clean_tag_name(self.name_entry.get())
         address = self.address_entry.get().strip()
         tag_type = self.type_option.get()
@@ -174,6 +360,9 @@ class TagConfiguratorTab(ctk.CTkFrame):
             messagebox.showinfo("Not Found", "No matching tag found to remove.")
 
     def load_tags(self):
+        """
+        Loads tags from config file and updates the display.
+        """
         path = "plc_logger_config.json"
         if os.path.exists(path):
             try:
