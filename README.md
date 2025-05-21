@@ -1,4 +1,8 @@
-<<<<<<< HEAD
+# DataLogger
+# PLC Data Logger and Configurator
+
+This application allows users to configure and log data from Programmable Logic Controllers (PLCs) using Modbus TCP and ADS protocols. It provides a graphical interface to manage monitored tags, view diagnostics, and display data charts.
+
 # DataLogger
 
 Open Task Scheduler:
@@ -26,6 +30,3 @@ Test the Task:
 
 Right-click on the task in Task Scheduler and select Run.
 Restart your computer to verify it runs automatically.
-=======
-# DataLogger Mahdi
->>>>>>> b367394cb8c8b298b3c7625bfd3fb34b7a4a50d5
