@@ -1,4 +1,12 @@
 # DataLogger
+
+## Installation
+
+Install dependencies with:
+
+    pip install -r requirements.txt
+
+
 # PLC Data Logger and Configurator
 
 This application allows users to configure and log data from Programmable Logic Controllers (PLCs) using Modbus TCP and ADS protocols. It provides a graphical interface to manage monitored tags, view diagnostics, and display data charts.

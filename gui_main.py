@@ -3,12 +3,13 @@ from tkinter import messagebox, StringVar
 from tag_configurator_tab import TagConfiguratorTab
 from diagnostics_tab import DiagnosticsTab
 from ChartTab import ChartTab
-import subprocess
 import os
 import json
 import threading
 from datetime import datetime
 from utils import initialize_db, DB_PATH
+from tkinter import messagebox
+
 
 CONFIG_FILE = "plc_logger_config.json"
 
@@ -63,6 +64,21 @@ class TagEditorApp(ctk.CTk):
         self.polling_note = ctk.CTkLabel(self.settings_frame, text="Polling interval in seconds (e.g., 0.5)", text_color="gray", font=("Arial", 9, "italic"))
         self.polling_note.grid(row=1, column=3, padx=10, pady=(0, 5))
 
+        # AMS Net ID Entry
+        self.ams_id_entry = ctk.CTkEntry(self.settings_frame, placeholder_text="AMS Net ID")
+        self.ams_id_entry.insert(0, self.global_settings.get("ams_net_id", ""))
+        self.ams_id_entry.grid(row=0, column=4, padx=10, pady=10)
+        self.ams_id_note = ctk.CTkLabel(self.settings_frame, text="e.g., 5.132.118.239.1.1", text_color="gray", font=("Arial", 9, "italic"))
+        self.ams_id_note.grid(row=1, column=4, padx=10, pady=(0, 5))
+
+        # AMS Port Entry
+        self.ams_port_entry = ctk.CTkEntry(self.settings_frame, placeholder_text="AMS Port")
+        self.ams_port_entry.insert(0, str(self.global_settings.get("ams_port", 851)))
+        self.ams_port_entry.grid(row=0, column=5, padx=10, pady=10)
+        self.ams_port_note = ctk.CTkLabel(self.settings_frame, text="ADS TCP port (default: 851)", text_color="gray", font=("Arial", 9, "italic"))
+        self.ams_port_note.grid(row=1, column=5, padx=10, pady=(0, 5))
+
+
         # Row 2: Buttons (apply, start, stop) in a new frame
         self.button_frame = ctk.CTkFrame(self.settings_frame)
         self.button_frame.grid(row=2, column=0, columnspan=4, padx=0, pady=(5, 0), sticky="w")
@@ -106,6 +122,25 @@ class TagEditorApp(ctk.CTk):
         self.tag_configurator_tab = TagConfiguratorTab(self.tabs.tab("Tag Configurator"), self)
         self.tag_configurator_tab.grid(row=0, column=0, sticky="nsew")
 
+        self.mode_option.configure(command=self.update_ams_fields)
+        self.update_ams_fields()
+
+
+
+    def update_ams_fields(self, mode=None):
+        if mode is None:
+            mode = self.mode_option.get()
+        if mode == "ADS":
+            self.ams_id_entry.grid()
+            self.ams_id_note.grid()
+            self.ams_port_entry.grid()
+            self.ams_port_note.grid()
+        else:
+            self.ams_id_entry.grid_remove()
+            self.ams_id_note.grid_remove()
+            self.ams_port_entry.grid_remove()
+            self.ams_port_note.grid_remove()
+
 
     def update_tag_filter_dropdown(self):
         tag_names = ["All"]
@@ -122,6 +157,8 @@ class TagEditorApp(ctk.CTk):
 
     def apply_settings(self):
         try:
+            self.global_settings["ams_net_id"] = self.ams_id_entry.get()
+            self.global_settings["ams_port"] = int(self.ams_port_entry.get())
             self.global_settings["mode"] = self.mode_option.get()
             self.global_settings["ip"] = self.ip_entry.get()
             self.global_settings["port"] = int(self.port_entry.get())
@@ -188,7 +225,8 @@ class TagEditorApp(ctk.CTk):
                 json.dump(config, f, indent=4)
             self.update_tag_filter_dropdown()
         except Exception as e:
-            print(f"Failed to save config: {e}")
+            messagebox.showerror("Save Config Error", f"Failed to save config:\n{e}")
+
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -199,7 +237,7 @@ class TagEditorApp(ctk.CTk):
                     self.tags = config.get("tags", [])
                 self.update_tag_filter_dropdown()
             except Exception as e:
-                print(f"Failed to load config: {e}")
+                messagebox.showerror("Load Config Error", f"Failed to load config:\n{e}")
 
     def on_close(self):
         if hasattr(self, "tag_configurator_tab") and self.tag_configurator_tab.unsaved_changes:

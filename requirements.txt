@@ -1,0 +1,5 @@
+customtkinter>=5.2.0
+pyModbusTCP>=0.2.0
+pyads>=3.3.6
+matplotlib>=3.5.0
+numpy>=1.21.0

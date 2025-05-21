@@ -16,7 +16,14 @@ def safe_read_by_name(plc, symbol, plctype, default_value=None):
         return default_value
 
 def start_ads_data_pull(stop_event=None, logger=None):
-    plc = pyads.Connection(ADS_PLC_AMS_ID, ADS_PORT, ADS_PLC_IP)
+    config = load_config()
+    global_settings = config.get("global_settings", {})
+    AMS_NET_ID = global_settings.get("ams_net_id", "5.132.118.239.1.1")
+    ADS_PORT = global_settings.get("ams_port", 851)
+    ADS_PLC_IP = global_settings.get("ip", "192.168.0.1")
+    ADS_POLLING_DELAY = global_settings.get("polling_interval", 0.5)
+
+    plc = pyads.Connection(AMS_NET_ID, ADS_PORT, ADS_PLC_IP)
     previous_coil_state = False
 
     if logger: logger("Connecting to ADS PLC...")
