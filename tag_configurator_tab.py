@@ -234,7 +234,13 @@ class TagConfiguratorTab(ctk.CTkFrame):
         self.unsaved_changes = True
         self.save_button.configure(fg_color="#FFA500")
         self.update_tag_display()
+        # Clear form and reset selection after edit
+        self.name_var.set("")
+        self.address_entry.delete(0, "end")
+        self.type_option.set("Coil")
+        self.enabled_var.set(True)
         self.selected_tag_index = None
+
 
     def on_name_entry_focus_out(self, event=None):
         """
