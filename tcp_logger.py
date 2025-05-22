@@ -16,6 +16,7 @@ def get_uint32(registers, index):
 def start_tcp_logging(stop_event=None, logger=None):
     """
     Main Modbus TCP logging loop. Uses DBLogger for efficient DB inserts.
+    Prints debug information on DB open for troubleshooting.
     """
     global client, tags, settings
 
@@ -26,7 +27,9 @@ def start_tcp_logging(stop_event=None, logger=None):
     ip = settings.get("ip", "192.168.0.10")
     port = settings.get("port", 502)
     delay = settings.get("polling_interval", 0.5)
-    db_file = settings.get("db_file", "PLC_Logs/plc_data.db")
+    db_file = settings.get("db_file", "C:/Users/admin/Documents/PLC_Logs/plc_data.db")
+
+    print(f"[tcp_logger] Attempting to open DB file: {db_file}")
 
     client = ModbusClient(host=ip, port=port, auto_open=True, timeout=5)
     initialize_db()
@@ -40,14 +43,24 @@ def start_tcp_logging(stop_event=None, logger=None):
     previous_trigger = False
     if logger: logger("Connected to Modbus PLC.")
 
-    # Use DBLogger for efficient, open-connection inserts
     db_logger = DBLogger(db_file)
-    db_logger.open()
+    try:
+        db_logger.open()
+    except Exception as e:
+        err_msg = f"Error opening DB: {e}"
+        if logger: logger(err_msg)
+        else: print(err_msg)
+        client.close()
+        return
+
     try:
         while not (stop_event and stop_event.is_set()):
             try:
                 coils = client.read_coils(0, 100)
                 registers = client.read_holding_registers(0, 200)
+
+                # Debugging: print what is read from the PLC
+                # print(f"[tcp_logger] Coils: {coils}\nRegisters: {registers}")
 
                 if not coils or not registers:
                     if logger: logger("Failed to read from PLC.")
@@ -55,6 +68,9 @@ def start_tcp_logging(stop_event=None, logger=None):
                     continue
 
                 current_trigger = coils[0] if len(coils) > 0 else False
+
+                # Optional debug for trigger logic:
+                # if logger: logger(f"Trigger: prev={previous_trigger}, current={current_trigger}")
 
                 if not previous_trigger and current_trigger:
                     row = {
@@ -82,8 +98,10 @@ def start_tcp_logging(stop_event=None, logger=None):
 
             except Exception as e:
                 if logger: logger(f"Logging error: {e}")
+                else: print(f"Logging error: {e}")
                 break
     finally:
         db_logger.close()
         client.close()
         if logger: logger("Modbus logging stopped.")
+        else: print("Modbus logging stopped.")
