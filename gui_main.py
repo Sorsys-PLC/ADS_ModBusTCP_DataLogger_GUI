@@ -57,10 +57,55 @@ class TagEditorApp(ctk.CTk):
         self.logging_thread = None
         self.logging_stop_event = threading.Event()
 
+        self._logging_active = False
+        self._logging_flash_on = False
+        self.logging_status_label = None  # Will be set in create_widgets
+
+
         self.create_widgets()
         self.load_config()
         self.bind_tab_change()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+
+
+
+    def show_about_dialog(self):
+        about_text = (
+            "PLC Logger Configurator\n"
+            "Version: 2.1\n"
+            "Developer: Saeid Khosravani (saeid.k@sorsys.ca)\n\n"
+            "Usage Tips:\n"
+            "- Set your PLC connection at the top.\n"
+            "- Wait for 'Read Success Rate = 100%' for auto logging start.\n"
+            "- Use Start/Stop Logging buttons as needed.\n"
+            "- Check Diagnostics and Charts for status and data.\n"
+            "- All logs are saved to your Documents/PLC_Logs folder.\n"
+        )
+        from tkinter import messagebox
+        messagebox.showinfo("About / Help", about_text)
+     
+    def _update_logging_status(self):
+        """Flashes the green indicator when logging is active."""
+        if self._logging_active:
+            # Toggle the flash state
+            self._logging_flash_on = not self._logging_flash_on
+            color = "green" if self._logging_flash_on else "gray"
+            self.logging_status_label.configure(text="● Logging", text_color=color)
+            # Repeat after 500ms (for a 1 second cycle)
+            self.after(500, self._update_logging_status)
+        else:
+            # Not logging, show solid gray
+            self.logging_status_label.configure(text="● Not Logging", text_color="gray")
+            self._logging_flash_on = False
+
+   
+    def handle_auto_start_logging(self):
+        # Only start if not already running
+        if not (self.logging_thread and self.logging_thread.is_alive()):
+            self.log_message("PLC connection healthy. Auto-starting logging!")
+            self.start_logging()
+
     
     def create_widgets(self):
         # Settings panel
@@ -104,6 +149,21 @@ class TagEditorApp(ctk.CTk):
         self.ams_port_note = ctk.CTkLabel(self.settings_frame, text="ADS TCP port (default: 851)", text_color="gray", font=("Arial", 9, "italic"))
         self.ams_port_note.grid(row=1, column=5, padx=10, pady=(0, 5))
 
+        self.logging_status_label = ctk.CTkLabel(
+            self.settings_frame,
+            text="● Not Logging",
+            text_color="gray",
+            font=("Arial", 12, "bold"))
+        self.logging_status_label.grid(row=0, column=6, padx=15, pady=10, sticky="e")
+        self._update_logging_status()  # Ensure the indicator is correct at startup
+
+        self.about_button = ctk.CTkButton(
+        self.settings_frame,
+        text="About / Help",
+        width=110,
+        command=self.show_about_dialog)
+        self.about_button.grid(row=0, column=7, padx=10, pady=10, sticky="e")
+
 
         # Row 2: Buttons (apply, start, stop) in a new frame
         self.button_frame = ctk.CTkFrame(self.settings_frame)
@@ -141,6 +201,9 @@ class TagEditorApp(ctk.CTk):
 
         self.diagnostics_tab = DiagnosticsTab(self.tabs.tab("Diagnostics"), self)
         self.diagnostics_tab.pack(fill="both", expand=True)
+
+        self.diagnostics_tab.on_read_success = self.handle_auto_start_logging  # Patch for auto-start
+
 
         self.chart_tab = ChartTab(self.tabs.tab("Charts"), self)
         self.chart_tab.pack(fill="both", expand=True)
@@ -181,7 +244,7 @@ class TagEditorApp(ctk.CTk):
         self.log_console.insert("end", f"{timestamp} - {text}\n")
         self.log_console.see("end")
 
-    def apply_settings(self):
+    def apply_settings(self, show_info=True):
         # Get values from entries
         ams_net_id = self.ams_id_entry.get().strip()
         ams_port = self.ams_port_entry.get().strip()
@@ -228,10 +291,12 @@ class TagEditorApp(ctk.CTk):
         self.global_settings["ip"] = ip
         self.global_settings["port"] = port_val
         self.global_settings["polling_interval"] = float(polling)
-        messagebox.showinfo("Settings Updated", "Connection settings updated.")
+        if show_info:
+            messagebox.showinfo("Settings Updated", "Connection settings updated.")
+
 
     def start_logging(self):
-        self.apply_settings()
+        self.apply_settings(show_info=False)
         initialize_db()
         self.db_file = DB_PATH
 
@@ -258,10 +323,16 @@ class TagEditorApp(ctk.CTk):
             self.logging_thread = threading.Thread(target=run_tcp, daemon=True)
             self.logging_thread.start()
             self.log_message("Modbus TCP logging started.")
+            self._logging_active = True
+            self._update_logging_status()
+
         elif mode == "ADS":
             self.logging_thread = threading.Thread(target=run_ads, daemon=True)
             self.logging_thread.start()
             self.log_message("ADS logging started.")
+            self._logging_active = True
+            self._update_logging_status()
+
         else:
             messagebox.showerror("Invalid Mode", f"Unsupported logging mode: {mode}")
             self.log_message(f"Unsupported mode: {mode}")
@@ -270,7 +341,11 @@ class TagEditorApp(ctk.CTk):
         if self.logging_thread and self.logging_thread.is_alive():
             self.logging_stop_event.set()
             self.log_message("Logging stop requested.")
+            self._logging_active = False
+            self._update_logging_status()
         else:
+            self._logging_active = False
+            self._update_logging_status()
             self.log_message("No logging thread active.")
 
     def bind_tab_change(self):

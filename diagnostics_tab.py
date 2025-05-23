@@ -11,8 +11,11 @@ class DiagnosticsTab(ctk.CTkFrame):
         self.error_messages = []
         self.success_count = 0
         self.fail_count = 0
+        self.on_read_success = None  # ADD THIS: callback for read success
+        self._auto_start_triggered = False  # ADD THIS: to ensure one-time trigge
         self.create_widgets()
         self.after(5000, self.update_diagnostics)
+
 
     def log_debug_message(self, msg):
         """Add debug info to the error_log box and print to console."""
@@ -70,6 +73,12 @@ class DiagnosticsTab(ctk.CTkFrame):
         if total > 0:
             rate = int((self.success_count / total) * 100)
             self.success_rate_label.configure(text=f"Read Success Rate: {rate}%")
+            if rate == 100 and not self._auto_start_triggered:
+                self._auto_start_triggered = True
+                if callable(self.on_read_success):
+                    self.on_read_success()
+
+    
 
         if self.error_messages:
             recent = "\n".join(self.error_messages[-5:])
