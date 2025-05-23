@@ -14,6 +14,16 @@ class DiagnosticsTab(ctk.CTkFrame):
         self.create_widgets()
         self.after(5000, self.update_diagnostics)
 
+    def log_debug_message(self, msg):
+        """Add debug info to the error_log box and print to console."""
+        print(msg)  # Always print to console as backup
+        try:
+            self.error_log.insert("end", msg + "\n")
+            self.error_log.see("end")
+        except Exception as e:
+            print(f"Failed to write to diagnostics log box: {e}")
+
+
     def create_widgets(self):
         self.connection_status_label = ctk.CTkLabel(self, text="Connection: Unknown")
         self.connection_status_label.pack(pady=10)

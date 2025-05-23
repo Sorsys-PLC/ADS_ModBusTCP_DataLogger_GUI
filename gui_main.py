@@ -240,7 +240,12 @@ class TagEditorApp(ctk.CTk):
         def run_tcp():
             from tcp_logger import start_tcp_logging
             self.log_message("Starting Modbus TCP logging...")
-            start_tcp_logging(stop_event=self.logging_stop_event, logger=self.log_message)
+
+            # Use DiagnosticsTab.log_debug_message if it exists, fallback to self.log_message
+            logger = getattr(self.diagnostics_tab, "log_debug_message", self.log_message)
+            start_tcp_logging(stop_event=self.logging_stop_event, logger=logger)
+
+
 
         def run_ads():
             from ads_data_pull import start_ads_data_pull
