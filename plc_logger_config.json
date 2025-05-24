@@ -9,9 +9,57 @@
     },
     "tags": [
         {
-            "name": "ttt",
+            "name": "Oil_Hole_NG",
             "address": 1,
             "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "Total_CAM_Result",
+            "address": 2,
+            "type": "Coil",
+            "enabled": true
+        },
+        {
+            "name": "Bath_Number",
+            "address": 1,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "CamDistMin",
+            "address": 2,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "CamDistMax",
+            "address": 3,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "ValveDistMin",
+            "address": 4,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "ValveDistMax",
+            "address": 5,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "CircleDiameter",
+            "address": 6,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "Circularity",
+            "address": 7,
+            "type": "Register",
             "enabled": true
         }
     ]
