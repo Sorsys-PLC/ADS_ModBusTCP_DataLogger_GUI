@@ -1,3 +1,3 @@
 @echo off
-python C:\LogFile\DataLogger\launcher.py
+python C:\LogFile\DataLogger\main.py
 @pause
