@@ -3,6 +3,13 @@ import json
 import os
 import re
 from tkinter import messagebox
+import csv
+from tkinter import filedialog, messagebox
+from tag_import_utils import parse_productivity_csv
+from tag_import_dialog import import_tags_from_csv_gui
+from tkinter import ttk
+
+
 
 class TagConfiguratorTab(ctk.CTkFrame):
     """
@@ -65,9 +72,44 @@ class TagConfiguratorTab(ctk.CTkFrame):
         self.save_button = ctk.CTkButton(button_frame, text="Save Tags", command=self.save_tags)
         self.save_button.pack(side="left", padx=5)
 
-        self.tag_display = ctk.CTkTextbox(self, width=800, height=200)
-        self.tag_display.pack(padx=10, pady=10, fill="both", expand=True)
-        self.tag_display.bind("<Button-1>", self.on_tag_display_click)
+        # Add "Import Tags from CSV" button
+        self.import_button = ctk.CTkButton(
+            button_frame,
+            text="Import Tags from CSV",
+            command=self.import_tags_from_csv)  # We will define this method next
+        self.import_button.pack(side="left", padx=5)
+
+
+        #self.tag_display = ctk.CTkTextbox(self, width=800, height=200)
+        #self.tag_display.pack(padx=10, pady=10, fill="both", expand=True)
+        #self.tag_display.bind("<Button-1>", self.on_tag_display_click)
+        #self.tag_display.configure(state="disabled")
+
+        self.tree = ttk.Treeview(self, columns=("Name", "Type", "Address", "Enabled"), show="headings", height=8)
+
+        self.tree.heading("Name", text="Name")
+        self.tree.heading("Type", text="Type")
+        self.tree.heading("Address", text="Address")
+        self.tree.heading("Enabled", text="Enabled")
+
+        self.tree.column("Name", width=200)
+        self.tree.column("Type", width=100, anchor="center")
+        self.tree.column("Address", width=100, anchor="center")
+        self.tree.column("Enabled", width=100, anchor="center")
+
+        self.tree.pack(padx=10, pady=10, fill="both", expand=True)
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+
+
+    def import_tags_from_csv(self):
+        import_tags_from_csv_gui(
+            self.tags,
+            update_callback=lambda: (
+            self.update_tag_display(),
+            setattr(self, "unsaved_changes", True),
+            self.save_button.configure(fg_color="#FFA500")),
+            app_stop_start=lambda: (self.app.stop_logging(), self.app.start_logging())
+        )
 
     def clean_tag_name(self, name):
         """
@@ -77,21 +119,37 @@ class TagConfiguratorTab(ctk.CTkFrame):
         name = re.sub(r'\s+', ' ', name)
         return name
 
-    def update_tag_display(self):
-        """
-        Refreshes the tag display area, marking duplicates.
-        """
-        self.tag_display.delete("1.0", "end")
-        seen = set()
+    def update_tag_display(self, highlight_index=None):
+        # Clear the tree
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
         for idx, tag in enumerate(self.tags):
-            label = f"{repr(tag['name'])} [{tag['type']} @ {tag['address']}]"
-            key = (tag['type'], tag['address'])
-            enabled_status = "Enabled" if tag.get("enabled", True) else "Disabled"
-            duplicate = ""
-            if key in seen:
-                duplicate = "  <-- DUPLICATE"
-            self.tag_display.insert("end", f"{label} ({enabled_status}){duplicate}\n")
-            seen.add(key)
+            values = (
+                tag["name"],
+                tag["type"],
+                tag["address"],
+                "Yes" if tag.get("enabled", True) else "No"
+            )
+
+            tag_id = self.tree.insert("", "end", iid=str(idx), text=tag["name"], values=values)
+            if idx == highlight_index:
+                self.tree.selection_set(tag_id)
+                self.tree.see(tag_id)
+
+
+    def on_tree_select(self, event):
+        selected = self.tree.selection()
+        if not selected:
+            return
+        idx = int(selected[0])
+        tag = self.tags[idx]
+        self.name_var.set(tag['name'])
+        self.address_entry.delete(0, "end")
+        self.address_entry.insert(0, str(tag['address']))
+        self.type_option.set(tag['type'])
+        self.enabled_var.set(tag.get("enabled", True))
+        self.selected_tag_index = idx
 
     def get_selected_tag_index_from_cursor(self, event):
         """
@@ -113,6 +171,7 @@ class TagConfiguratorTab(ctk.CTkFrame):
         """
         idx = self.get_selected_tag_index_from_cursor(event)
         if idx is not None:
+            print(f"[DEBUG] Selected tag index: {idx}")  # Add this
             tag = self.tags[idx]
             self.name_var.set(tag['name'])
             self.address_entry.delete(0, "end")
@@ -177,9 +236,6 @@ class TagConfiguratorTab(ctk.CTkFrame):
         self.selected_tag_index = None
 
     def edit_tag(self):
-        """
-        Edit the currently selected tag in the list (based on display click).
-        """
         if self.selected_tag_index is None or not (0 <= self.selected_tag_index < len(self.tags)):
             messagebox.showerror("No Tag Selected", "Please select a tag to edit by clicking a line in the tag display.")
             return
@@ -190,6 +246,7 @@ class TagConfiguratorTab(ctk.CTkFrame):
         except ValueError:
             messagebox.showerror("Invalid Address", "Address must be an integer.")
             return
+
         tag_type = self.type_option.get()
         enabled = self.enabled_var.get()
 
@@ -201,11 +258,10 @@ class TagConfiguratorTab(ctk.CTkFrame):
                     text=f"Name '{name}' already exists!",
                     text_color="red"
                 )
-                if hasattr(self.name_entry, 'configure'):
-                    try:
-                        self.name_entry.configure(border_color="red")
-                    except Exception:
-                        pass
+                try:
+                    self.name_entry.configure(border_color="red")
+                except Exception:
+                    pass
                 return
 
         # Check for duplicate address/type combo (ignore self)
@@ -214,32 +270,38 @@ class TagConfiguratorTab(ctk.CTkFrame):
                 messagebox.showerror("Duplicate Address", f"Another tag already uses address {address} as a {tag_type}.")
                 return
 
+        # Clear tooltip if valid
         self.name_entry_tooltip.configure(
             text="Enter a unique name for the tag",
             text_color="gray"
         )
-        if hasattr(self.name_entry, 'configure'):
-            try:
-                self.name_entry.configure(border_color="gray")
-            except Exception:
-                pass
+        try:
+            self.name_entry.configure(border_color="gray")
+        except Exception:
+            pass
 
-        # Update the tag
-        self.tags[self.selected_tag_index] = {
+        # ✅ Update the tag
+        updated_tag = {
             "name": name,
             "address": address,
             "type": tag_type,
             "enabled": enabled
         }
+
+        self.tags[self.selected_tag_index] = updated_tag
+        print(f"[DEBUG] Updated tag at index {self.selected_tag_index}: {updated_tag}")
+
         self.unsaved_changes = True
         self.save_button.configure(fg_color="#FFA500")
         self.update_tag_display()
-        # Clear form and reset selection after edit
+
+        # Clear form and reset selection
         self.name_var.set("")
         self.address_entry.delete(0, "end")
         self.type_option.set("Coil")
         self.enabled_var.set(True)
         self.selected_tag_index = None
+
 
 
     def on_name_entry_focus_out(self, event=None):
