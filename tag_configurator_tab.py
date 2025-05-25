@@ -294,13 +294,16 @@ class TagConfiguratorTab(ctk.CTkFrame):
         self.unsaved_changes = True
         self.save_button.configure(fg_color="#FFA500")
         self.update_tag_display()
+        self.app.tags = self.tags.copy()
 
-        # Clear form and reset selection
-        self.name_var.set("")
+        updated_tag = self.tags[self.selected_tag_index]
+        self.name_var.set(updated_tag['name'])
         self.address_entry.delete(0, "end")
-        self.type_option.set("Coil")
-        self.enabled_var.set(True)
-        self.selected_tag_index = None
+        self.address_entry.insert(0, str(updated_tag['address']))
+        self.type_option.set(updated_tag['type'])
+        self.enabled_var.set(updated_tag.get("enabled", True))
+        # Leave selection intact
+
 
 
 
