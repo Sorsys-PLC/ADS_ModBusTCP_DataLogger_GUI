@@ -3,6 +3,9 @@ import json
 from datetime import datetime
 from pyModbusTCP.client import ModbusClient
 from utils import initialize_db, DBLogger, load_config, DB_PATH
+import utils
+import threading
+
 
 client = None
 tags = []
@@ -64,7 +67,7 @@ def start_tcp_logging(stop_event: threading.Event = None, logger: callable = Non
             # Fallback if no logger is provided (e.g., direct script run without proper setup)
             print(f"NO_LOGGER: {log_msg_with_prefix}")
 
-
+    db_logger = None
     try:
         _log_worker_message("Initializing TCP logging worker...", level=logging.DEBUG)
         config = load_config()
@@ -80,7 +83,7 @@ def start_tcp_logging(stop_event: threading.Event = None, logger: callable = Non
         
         # initialize_db() is called in gui_main before starting the thread.
         # DB_PATH should be valid if we reach here.
-        if not DB_PATH:
+        if not utils.DB_PATH:
             _log_worker_message("DB_PATH is not set. Cannot proceed with DB operations.", level=logging.ERROR)
             return # Critical error, cannot log to DB.
             
@@ -211,7 +214,7 @@ def start_tcp_logging(stop_event: threading.Event = None, logger: callable = Non
     except Exception as e: 
         _log_worker_message(f"Fatal error in start_tcp_logging setup: {e}", level=logging.CRITICAL, exc_info=True)
     finally:
-        if db_logger and db_logger.conn: 
+        if db_logger is not None and getattr(db_logger, "conn", None):
             db_logger.close()
             _log_worker_message("Database connection closed by worker.", level=logging.DEBUG)
         if client and client.is_open:

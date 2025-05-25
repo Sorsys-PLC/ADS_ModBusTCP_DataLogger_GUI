@@ -7,12 +7,12 @@ import os
 import json
 import threading
 from datetime import datetime
-from utils import initialize_db, DB_PATH
+import utils
 from tkinter import messagebox
 import ipaddress
 import re
 import logging # Added
-from main import APP_LOGGER_NAME # Added
+
 
 # Get the central logger instance (APP_LOGGER_NAME is "" for root logger)
 logger = logging.getLogger(__name__) # Use module's own logger, inherits root config
@@ -27,11 +27,11 @@ def is_valid_ip(ip: str) -> bool:
     Returns:
         True if valid IP, False otherwise.
     """
-        try:
-            ipaddress.ip_address(ip)
-            return True
-        except ValueError:
-            return False
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
         
 def is_valid_polling_interval(interval: str) -> bool:
     """
@@ -452,11 +452,13 @@ class TagEditorApp(ctk.CTk):
             messagebox.showwarning("Logging Active", "Logging is already in progress. Please stop the current session first.")
             return
 
+
+
         try:
-            initialize_db() 
-            self.db_file = DB_PATH # DB_PATH is set by initialize_db
+            utils.initialize_db()
+            self.db_file = utils.DB_PATH # DB_PATH is set by initialize_db
             if not self.db_file: # Should not happen if initialize_db is correct
-                self.log_message("Database path (DB_PATH) not set after initialize_db. Cannot start logging.", level=logging.ERROR)
+                self.log_message("Database path (utils.DB_PATH) not set after initialize_db. Cannot start logging.", level=logging.ERROR)
                 messagebox.showerror("DB Error", "Database path not configured. Check logs.")
                 return
             self.log_message(f"Logging to database: {self.db_file}", level=logging.INFO)

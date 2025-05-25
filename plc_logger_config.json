@@ -3,9 +3,7 @@
         "mode": "TCP",
         "ip": "192.168.0.10",
         "port": 502,
-        "polling_interval": 0.5,
-        "ams_net_id": "5.132.118.239.1.1",
-        "ams_port": 851
+        "polling_interval": 0.5
     },
     "tags": [
         {
@@ -61,6 +59,14 @@
             "address": 3,
             "type": "Register",
             "enabled": true
+        },
+        {
+            "name": "TrigDataLog",
+            "address": 0,
+            "type": "Coil",
+            "enabled": true,
+            "scale": 1.0,
+            "description": "C-000596"
         }
     ]
 }
