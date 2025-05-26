@@ -1,0 +1,23 @@
+Custom DataLogger License (Non-Commercial)
+
+Copyright (c) 2025 Saeid Khosravani
+
+This software is provided free of charge for personal, educational, or internal research use.
+
+You may:
+- Use, modify, and distribute this software for non-commercial purposes
+- Include this software in non-commercial, open-source projects
+
+You may not:
+- Use this software, or any modified version of it, in a commercial product or service
+- Sell or license this software without prior written permission from the author
+
+Commercial use includes, but is not limited to:
+- Using the software in a paid product
+- Offering the software as part of a commercial SaaS or industrial solution
+- Internal use at a for-profit company where it supports production systems
+
+To inquire about commercial licensing, please contact:
+📧 saeidam@gmail.com
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
