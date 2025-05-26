@@ -87,7 +87,8 @@ pip install -r requirements.txt
 
 ## 📝 License
 
-> [Add your preferred license here, e.g., MIT, Apache 2.0, or state "Proprietary - internal use only."]
+This project is licensed for non-commercial use only.  
+Commercial use requires written permission — see [LICENSE.txt](LICENSE.txt).
 
 ---
 
