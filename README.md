@@ -14,7 +14,7 @@ This application allows users to configure and log data from Programmable Logic 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/Sorsys-PLC/DataLogger.git
+git clone https://github.com/Saeidam/ADS_ModBusTCP_DataLogger_GUI.git
 cd DataLogger
 ```
 
@@ -94,5 +94,5 @@ Commercial use requires written permission — see [LICENSE.txt](LICENSE.txt).
 
 ## 💬 Contact
 
-For support or feature requests, open an issue on GitHub or contact [yourname@company.com].
+For support or feature requests, open an issue on GitHub or contact saeidam@gmail.com.
 
