@@ -1,6 +1,10 @@
 # PLC Data Logger and Configurator
 
-![App Screenshot](GUI-Logger.png)
+<p align="center">
+  <img src="GUI-Logger.png" alt="PLC Logger GUI" width="700"/>
+  <br/>
+  <em>Main window showing logging controls, diagnostics, and tag configuration.</em>
+</p>
 # PLC Data Logger and Configurator
 
 This application allows users to configure and log data from Programmable Logic Controllers (PLCs) using Modbus TCP and Beckhoff ADS protocols. It provides a graphical interface to manage monitored tags, view diagnostics, and display data charts.
