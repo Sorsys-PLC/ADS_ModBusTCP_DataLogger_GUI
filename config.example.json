@@ -1,0 +1,26 @@
+{
+    "mode": "TCP",
+    "tcp": {
+        "ip": "192.168.0.XXX",
+        "port": 502
+    },
+    "ads": {
+        "ams_net_id": "1.2.3.4.5.6",
+        "ams_port": 851
+    },
+    "interval": 0.5,
+    "tags": [
+        {
+            "name": "ExampleTag1",
+            "address": 0,
+            "type": "Register",
+            "enabled": true
+        },
+        {
+            "name": "ExampleTag2",
+            "address": 1,
+            "type": "Coil",
+            "enabled": false
+        }
+    ]
+}
