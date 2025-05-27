@@ -396,6 +396,10 @@ class ChartTab(ctk.CTkFrame):
             self.logger.warning("Background chart worker: No database file provided.")
             self.after(0, lambda: self._chart_message("No database file selected. Please select a database from the dropdown.", "Info"))
             return
+        if not tag_to_plot:
+            self.logger.warning("No tag selected for chart. Worker exiting.")
+            return
+
 
         effective_tag = tag_to_plot
         if tag_to_plot == "All":

@@ -67,6 +67,14 @@
             "enabled": true,
             "scale": 1.0,
             "description": "C-000596"
+        },
+        {
+            "name": "OuterDiameter",
+            "address": 14,
+            "type": "Register",
+            "enabled": true,
+            "scale": 1.0,
+            "description": "S32-000312"
         }
     ]
 }

@@ -1,5 +1,5 @@
 @echo off
-python C:\LogFile\DataLogger\main.py
+python C:\Users\admin\Desktop\Python\DataLogger\main.py
 @pause
 
 :: Open Task Scheduler (Win + S, search "Task Scheduler").
